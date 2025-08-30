@@ -57,6 +57,7 @@ trash_restore() {
 
 trash_empty() {
 	rm -rf ~/.local/share/Trash/files/*
+	rm -rf ~/.local/share/Trash/info/*
 	echo "Trash emptied"
 }
 
