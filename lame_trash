@@ -1,0 +1,65 @@
+# Trash
+alias trash='trash_move'
+alias trashlist='la -la ~/.local/share/Trash/files'
+alias restore='trash_restore'
+alias trashemptyplease='trash_empty'
+
+trash_move() {
+	
+	if [ -z "$1" ]; then
+		echo "Usage: trash <file_name>"
+		return 1
+	fi
+
+	mkdir -p ~/.local/share/Trash/files ~/.local/share/Trash/info
+
+	for filepath in "$@"; do
+		[ ! -e "$filepath" ] && echo "Not Found: $filepath" && continue
+
+		filename=$(basename "$filepath")
+		timestamp=$(date +%s)
+		unique_name="${filename}_${timestamp}"
+
+		mv "$filepath" ~/.local/share/Trash/files/"$unique_name"
+
+		cat > ~/.local/share/Trash/info/"$unique_name.trashinfo" <<EOF
+[Trash Info]
+OriginalPath=$(realpath "$filepath")
+DeleteDate=$(date -Iseconds)
+FileName=$filename
+EOF
+
+		echo "Trashed: $filename"
+	done
+}
+
+trash_restore() {
+	TRASH_DIR=~/.local/share/Trash
+	INFO_DIR="$TRASH_DIR/info"
+	FILE_DIR="$TRASH_DIR/files"
+
+	if [ -z "$1" ]; then
+		echo "Usage: restore <partial_file_name>"
+		return 1
+	fi
+
+	match=$(ls -a  $INFO_DIR | grep "$1" | head -n 1)
+	[ -z "$match" ] && echo "No match found" && return 1
+
+	unique_name="${match%.trashinfo}"
+	original_path=$(grep "OriginalPath=" "$INFO_DIR/$match" | cut -d= -f2-)
+
+	mkdir -p "$(dirname "$original_path")"
+	mv "$FILE_DIR/$unique_name" "$original_path" && rm "$INFO_DIR/$match"
+
+	echo "Restored to: $original_path"
+}
+
+trash_empty() {
+	rm -rf ~/.local/share/Trash/files/*
+	echo "Trash emptied"
+}
+
+#if [ -f ~/.lame_trash/lame_trash ]; then
+#  source ~/.lame_trash/lame_trash
+#fi
